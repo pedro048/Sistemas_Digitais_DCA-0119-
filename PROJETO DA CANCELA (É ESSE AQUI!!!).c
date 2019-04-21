@@ -10,6 +10,9 @@
 #define   echo      PORTD4    //bit para leitura do pulso de Echo
 #define   trigger   PORTD3    //bit para gerar trigger para o sensor ultrassônico
 
+#define   set_bit(reg,bit)    (reg |= (1<<bit))   //macro para setar um bit de determinado registrador
+#define   clr_bit(reg,bit)    (reg &= ~(1<<bit))    //macro para limpar um bit de determinado registrador
+
 uint16_t ldrValor = 0;
 int counter = 0x00;
 int cont = 0;
@@ -29,6 +32,14 @@ ISR(TIMER0_OVF_vect){
     }
     cont = 0;
   }
+
+  // -- Configura Interrupção do Timer0 --
+  //
+  // T0_OVF = (256 - timer0) x prescaler x ciclo de máquina
+  //        = (256 -    0  ) x    256    x      62,5E-9
+  //        =~ 4 ms
+  //
+  // Para 60 ms: 4ms x 15
   
   counter++; 
   if(counter == 15){             
@@ -38,16 +49,19 @@ ISR(TIMER0_OVF_vect){
   
 } //end ISR Timer0
 
+
 //Comunicacao USART
 ISR(USART_RX_vect) {
   while (!(UCSR0A & (1 << RXC0))); //espera o dado ser recebido
-  if(cont == 1){
-      escreve_USART("acesso liberado\n\0");
-      escreve_USART("\n\0");
-  }else{
-      escreve_USART("acesso bloqueado\n\0");
-      escreve_USART("\n\0");
-  }
+  if(UDR0 == 'a'){
+      if(aux == 1){
+        escreve_USART("acesso liberado\n\0");
+        escreve_USART("\n\0");
+      }else{
+        escreve_USART("acesso bloqueado\n\0");
+        escreve_USART("\n\0");
+      }
+  }  
 }
 
 void USART_Transmite(unsigned char dado) {
@@ -75,20 +89,21 @@ void USART_Inic(unsigned int ubrr0) {
 
 int main(void){
   USART_Inic(MYUBRR);
-  DDRB |= _BV(PORTB1);  //coloca o PB1(OC1A) como saida (PWM)
+  DDRB |= _BV(PORTB3);  //coloca o PB3(OC2A) como saida (PWM)
   DDRC |= 0b00000000; //define o PC0(ADC0) como entrada (A\D)
   DDRD |= _BV(PORTD7) | _BV(trigger); //define PD7 como saida (servo) e PD3 (trigger) tambem
   PORTD |= 0b00000000; //o servo inicia parado
 
- // configuracao do PWM
+ //configuracao do PWM
  //FAST PWM 10 bits (Modo 7) sem inversão: WGM10 = 1, WGM11 = 1, WGM12 = 1  
-  TCCR1A |= _BV(COM1A1) | _BV(WGM10) | _BV(WGM11);
-  TCCR1B |= _BV(CS11) | _BV(WGM12); // clk_io/8 (prescale)
-
+ 
+ TCCR2A |= _BV(COM2A1) | _BV(WGM20) | _BV(WGM21);
+ TCCR2B |= _BV(CS21); //| _BV(WGM22); // clk_io/8 (prescale)
+ 
  // configuracao do ADC
   ADMUX   |= 0b01000000; //AREF com o valor do Vcc e usando o ADC0
   ADCSRA  |= 0b10000111; //ativa o ADEN (permite a conversao A/D) e define o fator de divisao como 128
-  
+
   
   //CONTAR TEMPO COM O CONTADOR ZERO
   cli();                //Desabilita a interrupção global
@@ -96,6 +111,7 @@ int main(void){
   TCCR0B = 0x04;            //Configura o prescaler para 1:256
   TIMSK0 = 0x01;            //Habilita a interrupção por estouro do TMR0
   sei();                //Habilitar a interrupção global 
+  
 
   /*
    Queremos um período de 8s
@@ -119,20 +135,21 @@ int main(void){
 */
   
   while(1){
+
     ADCSRA |= _BV(ADSC); /*o ADSC vai para 1 quando a conversao inicia e para 0 quando ela termina, 
                           levando o ADIF(interrupcao de fim de conversao) para 1
                           */
     while(!(ADCSRA & 0b00010000)); //enquanto ADIF nao for 1, a conversao ainda esta acontecendo
     ldrValor = (255*ADC)/1023;
-    OCR1A = ldrValor;
+    OCR2A = ldrValor;
     
     if(aux == 0){
       servo0graus();
     }
-    if(PIND & 0b00000100){ // considerando uma distancia de 10 cm (10*58=580)
-      servo180graus();    //move o servo para a posição 90º por 2 segundos
+    if((PIND & 0b00000100) || (pegaPulsoEcho()<200)){ 
+      servo180graus();    
       aux = 1; 
-    } 
+    }
   }
 }
 
@@ -182,16 +199,16 @@ uint16_t pegaPulsoEcho(){                //Função para captura do pulso de echo 
   
   //Configuração do Timer2 para contar o tempo em que o pulso de echo permanecerá em nível lógico alto
   
-  TCCR2A = 0x00;                    //Desabilita modos de comparação A e B, Desabilita PWM
-  TCCR2B = (1<<CS11);                 //Configura Prescaler (F_CPU/8)
-  TCNT2  = 0x00;                    //Inicia contagem em 0
+  TCCR1A = 0x00;                    //Desabilita modos de comparação A e B, Desabilita PWM
+  TCCR1B = (1<<CS21);                 //Configura Prescaler (F_CPU/8)
+  TCNT1  = 0x00;                    //Inicia contagem em 0
   
   
   for(i=0;i<600000;i++)               //Laço for para aguardar que ocorra a borda de descida do pulso de echo
   {
     if(PIND & (1<<echo))              //Pulso continua em nível alto?
     {
-      if(TCNT2 > 60000) break;          //Interrompe se TCNT2 atingir o limite da contagem
+      if(TCNT1 > 60000) break;          //Interrompe se TCNT2 atingir o limite da contagem
       else continue;                //Senão, continua
     }
     else
@@ -199,9 +216,9 @@ uint16_t pegaPulsoEcho(){                //Função para captura do pulso de echo 
     
   } //end for
   
-  resultado = TCNT2;                  //Salva o valor atual de TCNT2 na variável resultado (tempo que o echo ficou em high)
+  resultado = TCNT1;                  //Salva o valor atual de TCNT2 na variável resultado (tempo que o echo ficou em high)
   
-  TCCR2B = 0x00;                    //Interrompe Timer
+  TCCR1B = 0x00;                    //Interrompe Timer
   
   
   return (resultado>>1);                //Função retornará o tempo em microssegundos
@@ -213,9 +230,11 @@ uint16_t pegaPulsoEcho(){                //Função para captura do pulso de echo 
 void HCSR04Trig()                //gera pulso de Trigger
 {
   
-  PORTD |= _BV(trigger);
+  set_bit(PORTD,trigger);
   _delay_us(10);
-  PORTD |= 0b00000000;
+  clr_bit(PORTD,trigger);
   
 } //end HCSR04Trig
+
+
 
