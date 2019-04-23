@@ -8,7 +8,7 @@
 #define MYUBRR  F_CPU/16/BAUD-1
 
 #define   echo      PORTD4    //bit para leitura do pulso de Echo
-#define   trigger   PORTD3    //bit para gerar trigger para o sensor ultrassÙnico
+#define   trigger   PORTD3    //bit para gerar trigger para o sensor ultrass√¥nico
 
 #define   set_bit(reg,bit)    (reg |= (1<<bit))   //macro para setar um bit de determinado registrador
 #define   clr_bit(reg,bit)    (reg &= ~(1<<bit))    //macro para limpar um bit de determinado registrador
@@ -18,7 +18,7 @@ int counter = 0x00;
 int cont = 0;
 int aux = 0;
 
-uint16_t pegaPulsoEcho();    //funÁ„o para ler pulso de Echo
+uint16_t pegaPulsoEcho();    //fun√ß√£o para ler pulso de Echo
 void HCSR04Trig();
 void servo0graus();
 void servo90graus();
@@ -33,9 +33,9 @@ ISR(TIMER0_OVF_vect){
     cont = 0;
   }
 
-  // -- Configura InterrupÁ„o do Timer0 --
+  // -- Configura Interrup√ß√£o do Timer0 --
   //
-  // T0_OVF = (256 - timer0) x prescaler x ciclo de m·quina
+  // T0_OVF = (256 - timer0) x prescaler x ciclo de m√°quina
   //        = (256 -    0  ) x    256    x      62,5E-9
   //        =~ 4 ms
   //
@@ -79,12 +79,12 @@ unsigned char USART_Recebe() {
 }
 
 void USART_Inic(unsigned int ubrr0) {
-  UBRR0H = (unsigned char)(ubrr0 >> 8); //Ajusta a taxa de transmiss„o
+  UBRR0H = (unsigned char)(ubrr0 >> 8); //Ajusta a taxa de transmiss√£o
   UBRR0L = (unsigned char)ubrr0;
 
-  UCSR0A = 0;//desabilitar velocidade dupla (no Arduino È habilitado por padr„o)
-  UCSR0B = (1 << RXEN0) | (1 << TXEN0) | (1 << RXCIE0); //Habilita a transmiss„o e a recepÁ„o
-  UCSR0C = (1 << UCSZ01) | (1 << UCSZ00) | (1 << RXC0); /*modo assÌncrono, 8 bits de dados, 1 bit de parada, sem paridade*/
+  UCSR0A = 0;//desabilitar velocidade dupla (no Arduino √© habilitado por padr√£o)
+  UCSR0B = (1 << RXEN0) | (1 << TXEN0) | (1 << RXCIE0); //Habilita a transmiss√£o e a recep√ß√£o
+  UCSR0C = (1 << UCSZ01) | (1 << UCSZ00) | (1 << RXC0); /*modo ass√≠ncrono, 8 bits de dados, 1 bit de parada, sem paridade*/
 }
 
 int main(void){
@@ -95,7 +95,7 @@ int main(void){
   PORTD |= 0b00000000; //o servo inicia parado
 
  //configuracao do PWM
- //FAST PWM 10 bits (Modo 7) sem invers„o: WGM10 = 1, WGM11 = 1, WGM12 = 1  
+ //FAST PWM 10 bits (Modo 7) sem invers√£o: WGM10 = 1, WGM11 = 1, WGM12 = 1  
  
  TCCR2A |= _BV(COM2A1) | _BV(WGM20) | _BV(WGM21);
  TCCR2B |= _BV(CS21); //| _BV(WGM22); // clk_io/8 (prescale)
@@ -106,25 +106,25 @@ int main(void){
 
   
   //CONTAR TEMPO COM O CONTADOR ZERO
-  cli();                //Desabilita a interrupÁ„o global
+  cli();                //Desabilita a interrup√ß√£o global
   TCNT0 =  0x00;            //Inicia o timer0 em 0
   TCCR0B = 0x04;            //Configura o prescaler para 1:256
-  TIMSK0 = 0x01;            //Habilita a interrupÁ„o por estouro do TMR0
-  sei();                //Habilitar a interrupÁ„o global 
+  TIMSK0 = 0x01;            //Habilita a interrup√ß√£o por estouro do TMR0
+  sei();                //Habilitar a interrup√ß√£o global 
   
 
   /*
-   Queremos um perÌodo de 8s
+   Queremos um per√≠odo de 8s
    
    Troca de estado de PD0, 4s
    
-   Ciclo de M·quina
+   Ciclo de M√°quina
    
    AVR 1/1600000
    
-   Ciclo de m·quina: 1/16Mhz = 62,5ns
+   Ciclo de m√°quina: 1/16Mhz = 62,5ns
    
-   Estouro = timer0 x prescaler x ciclo de m·quina = 4,08ms
+   Estouro = timer0 x prescaler x ciclo de m√°quina = 4,08ms
    
    Troca de estado = Estouro x Counter
    
@@ -184,44 +184,44 @@ void servo180graus(){             //Posiciona o servo em 180 graus
 } //end servo180graus
 
 
-uint16_t pegaPulsoEcho(){                //FunÁ„o para captura do pulso de echo gerado pelo sensor de ultrassom
+uint16_t pegaPulsoEcho(){                //Fun√ß√£o para captura do pulso de echo gerado pelo sensor de ultrassom
 
-  uint32_t i, resultado;                //Vari·veis locais auxiliares
+  uint32_t i, resultado;                //Vari√°veis locais auxiliares
   
-  for(i=0;i<600000;i++)               //LaÁo for para aguardar o inÌcio da borda de subida do pulso de echo
+  for(i=0;i<600000;i++)               //La√ßo for para aguardar o in√≠cio da borda de subida do pulso de echo
   {
-    if(!(PIND & (1<<echo)))             //Pulso continue em nÌvel baixo?
+    if(!(PIND & (1<<echo)))             //Pulso continue em n√≠vel baixo?
     continue;                   //Aguarda
-    else                                            //Pulso em nÌvel alto?
+    else                                            //Pulso em n√≠vel alto?
     break;                      //Interrompe
   } //end for
   
   
-  //ConfiguraÁ„o do Timer2 para contar o tempo em que o pulso de echo permanecer· em nÌvel lÛgico alto
+  //Configura√ß√£o do Timer2 para contar o tempo em que o pulso de echo permanecer√° em n√≠vel l√≥gico alto
   
-  TCCR1A = 0x00;                    //Desabilita modos de comparaÁ„o A e B, Desabilita PWM
-  TCCR1B = (1<<CS21);                 //Configura Prescaler (F_CPU/8)
+  TCCR1A = 0x00;                    //Desabilita modos de compara√ß√£o A e B, Desabilita PWM
+  TCCR1B = (1<<CS11);                 //Configura Prescaler (F_CPU/8)
   TCNT1  = 0x00;                    //Inicia contagem em 0
   
   
-  for(i=0;i<600000;i++)               //LaÁo for para aguardar que ocorra a borda de descida do pulso de echo
+  for(i=0;i<600000;i++)               //La√ßo for para aguardar que ocorra a borda de descida do pulso de echo
   {
-    if(PIND & (1<<echo))              //Pulso continua em nÌvel alto?
+    if(PIND & (1<<echo))              //Pulso continua em n√≠vel alto?
     {
       if(TCNT1 > 60000) break;          //Interrompe se TCNT2 atingir o limite da contagem
-      else continue;                //Sen„o, continua
+      else continue;                //Sen√£o, continua
     }
     else
     break;                      //Interrompe quando encontrar a borda de descida
     
   } //end for
   
-  resultado = TCNT1;                  //Salva o valor atual de TCNT2 na vari·vel resultado (tempo que o echo ficou em high)
+  resultado = TCNT1;                  //Salva o valor atual de TCNT2 na vari√°vel resultado (tempo que o echo ficou em high)
   
   TCCR1B = 0x00;                    //Interrompe Timer
   
   
-  return (resultado>>1);                //FunÁ„o retornar· o tempo em microssegundos
+  return (resultado>>1);                //Fun√ß√£o retornar√° o tempo em microssegundos
   
   
 } //end pegaPulsoEcho
