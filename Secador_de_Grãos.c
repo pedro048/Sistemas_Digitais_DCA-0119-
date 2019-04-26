@@ -14,6 +14,7 @@ SECADOR DE GRAOS
 
 /*
 
+
 ESQUEMATICO:
 			    T		 Um
 				|		 |
